@@ -2,19 +2,22 @@ import jwt from 'jsonwebtoken';
 
 const jwtSecret = 'sua-chave-secreta-para-o-JWT';
 
-const policy = {
-                principalId: 'user',
-                policyDocument: {
-                    Version: '2012-10-17',
-                    Statement: [
-                        {
-                            Action: 'execute-api:Invoke',
-                            Effect: 'Deny',
-                            Resource: '*'
-                        }
-                    ]
-                }
-            };
+// const policy = {
+//     principalId: 'user',
+//     policyDocument: {
+//         Version: '2012-10-17',
+//         Statement: [
+//             {
+//                 Action: 'execute-api:Invoke',
+//                 Effect: 'Deny',
+//                 Resource: '*'
+//             }
+//         ]
+//     }
+// };
+
+const awsAccountId = 'aws-account';
+let principalId = '0';
 
 export const handler = function (event, context, callback) {
     // Do not print the auth token unless absolutely necessary
@@ -35,7 +38,7 @@ export const handler = function (event, context, callback) {
         // 1. Call out to OAuth provider
         // 2. Decode a JWT token inline
         // 3. Lookup in a self-managed DB
-        var principalId = decoded.userId;
+        principalId = decoded.userId;
 
         // you can send a 401 Unauthorized response to the client by failing like so:
         // callback("Unauthorized", null);
@@ -46,18 +49,18 @@ export const handler = function (event, context, callback) {
         // if access is allowed, API Gateway will proceed with the backend integration configured on the method that was called
 
         // build apiOptions for the AuthPolicy
-        // var apiOptions = {};
-        // var tmp = event.methodArn.split(':');
-        // var apiGatewayArnTmp = tmp[5].split('/');
-        // var awsAccountId = tmp[4];
-        // apiOptions.region = tmp[3];
-        // apiOptions.restApiId = apiGatewayArnTmp[0];
-        // apiOptions.stage = apiGatewayArnTmp[1];
-        // var method = apiGatewayArnTmp[2];
-        // var resource = '/'; // root resource
-        // if (apiGatewayArnTmp[3]) {
-        //     resource += apiGatewayArnTmp.slice(3, apiGatewayArnTmp.length).join('/');
-        // }
+        let apiOptions = {};
+        let tmp = event.methodArn.split(':');
+        let apiGatewayArnTmp = tmp[5].split('/');
+        let awsAccountId = tmp[4];
+        apiOptions.region = tmp[3];
+        apiOptions.restApiId = apiGatewayArnTmp[0];
+        apiOptions.stage = apiGatewayArnTmp[1];
+        let method = apiGatewayArnTmp[2];
+        let resource = '/'; // root resource
+        if (apiGatewayArnTmp[3]) {
+            resource += apiGatewayArnTmp.slice(3, apiGatewayArnTmp.length).join('/');
+        }
 
         // this function must generate a policy that is associated with the recognized principal user identifier.
         // depending on your use case, you might store policies in a DB, or generate them on the fly
@@ -84,15 +87,23 @@ export const handler = function (event, context, callback) {
         // };
         // authResponse.context.arr = ['foo']; <- this is invalid, APIGW will not accept it
         // authResponse.context.obj = {'foo':'bar'}; <- also invalid
-        policy.policyDocument.Statement[0].Effect = 'Allow';
-        const authResponse = policy;
+
+        let policy2 = new AuthPolicy(principalId, awsAccountId, apiOptions);
+        // policy2.denyAllMethods();
+        policy2.allowMethod(AuthPolicy.HttpVerb.GET, "/pets");
+
+        // policy.policyDocument.Statement[0].Effect = 'Allow';
+        let authResponse = policy2.build();
+
+        console.log('authResponse: ' + JSON.stringify(authResponse));
+
         callback(null, authResponse);
 
     } catch (err) {
         console.log(JSON.stringify(err));
         console.log(`error: ${err.message}`);
 
-        callback("Unauthorized", policy);
+        callback('Unauthorized', null);
     }
 };
 

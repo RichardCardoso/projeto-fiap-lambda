@@ -16,7 +16,7 @@ const EVENT = {
         "X-Forwarded-For": "191.178.248.226",
         "X-Forwarded-Port": "443",
         "X-Forwarded-Proto": "https",
-        "Authorization": "Beare eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3ODkwOSIsImlhdCI6MTY5ODk1NDgyMCwiZXhwIjoxNjk4OTU4NDIwfQ.hx0rs4VKbiDjTEcQ-SAkRq0uicOjmEmdl_0MjF8In60"
+        "Authorization": "Beare eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3ODkwOSIsImlhdCI6MTY5ODk2MDQ1NiwiZXhwIjoxNjk4OTY0MDU2fQ.FVaqJ4OHqHI9oLcZAwzGdwpjLfsrfp8J5x_vI7g94Q4"
     },
     "multiValueHeaders": {
         "Accept": [
@@ -85,7 +85,8 @@ const EVENT = {
         "apiId": "87oarveouf"
     },
     "body": "{\r\n    \"cpf\": \"12345678909\"\r\n}",
-    "isBase64Encoded": false
+    "isBase64Encoded": false,
+    // "methodArn": "arn:aws:execute-api:us-east1:aws-account:87oarveouf/dev"
 }
 
 handler(
