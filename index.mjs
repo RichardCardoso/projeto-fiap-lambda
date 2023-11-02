@@ -2,14 +2,29 @@ import jwt from 'jsonwebtoken';
 
 const jwtSecret = 'sua-chave-secreta-para-o-JWT';
 
-exports.handler = function (event, context, callback) {
+const policy = {
+                principalId: 'user',
+                policyDocument: {
+                    Version: '2012-10-17',
+                    Statement: [
+                        {
+                            Action: 'execute-api:Invoke',
+                            Effect: 'Deny',
+                            Resource: '*'
+                        }
+                    ]
+                }
+            };
+
+export const handler = function (event, context, callback) {
     // Do not print the auth token unless absolutely necessary
     // console.log('Client token: ' + event.authorizationToken);
     console.log('Method ARN: ' + event.methodArn);
 
     try {
 
-        const authToken = event.headers.Authorization;
+        const token = event.headers.Authorization.split(' ');
+        const authToken = token[1];
 
         // validate the incoming token
         // and produce the principal user identifier associated with the token
@@ -31,18 +46,18 @@ exports.handler = function (event, context, callback) {
         // if access is allowed, API Gateway will proceed with the backend integration configured on the method that was called
 
         // build apiOptions for the AuthPolicy
-        var apiOptions = {};
-        var tmp = event.methodArn.split(':');
-        var apiGatewayArnTmp = tmp[5].split('/');
-        var awsAccountId = tmp[4];
-        apiOptions.region = tmp[3];
-        apiOptions.restApiId = apiGatewayArnTmp[0];
-        apiOptions.stage = apiGatewayArnTmp[1];
-        var method = apiGatewayArnTmp[2];
-        var resource = '/'; // root resource
-        if (apiGatewayArnTmp[3]) {
-            resource += apiGatewayArnTmp.slice(3, apiGatewayArnTmp.length).join('/');
-        }
+        // var apiOptions = {};
+        // var tmp = event.methodArn.split(':');
+        // var apiGatewayArnTmp = tmp[5].split('/');
+        // var awsAccountId = tmp[4];
+        // apiOptions.region = tmp[3];
+        // apiOptions.restApiId = apiGatewayArnTmp[0];
+        // apiOptions.stage = apiGatewayArnTmp[1];
+        // var method = apiGatewayArnTmp[2];
+        // var resource = '/'; // root resource
+        // if (apiGatewayArnTmp[3]) {
+        //     resource += apiGatewayArnTmp.slice(3, apiGatewayArnTmp.length).join('/');
+        // }
 
         // this function must generate a policy that is associated with the recognized principal user identifier.
         // depending on your use case, you might store policies in a DB, or generate them on the fly
@@ -52,31 +67,32 @@ exports.handler = function (event, context, callback) {
         // made with the same token
 
         // the example policy below denies access to all resources in the RestApi
-        var policy = new AuthPolicy(principalId, awsAccountId, apiOptions);
+        // var policy = new AuthPolicy(principalId, awsAccountId, apiOptions);
         // policy.denyAllMethods();
-        policy.allowMethod(AuthPolicy.HttpVerb.GET, "/users/username");
+        // policy.allowMethod(AuthPolicy.HttpVerb.GET, "/users/username");
 
         // finally, build the policy
-        var authResponse = policy.build();
+        // var authResponse = policy.build();
 
         // new! -- add additional key-value pairs
         // these are made available by APIGW like so: $context.authorizer.<key>
         // additional context is cached
-        authResponse.context = {
-            key: 'value', // $context.authorizer.key -> value
-            number: 1,
-            bool: true
-        };
+        // authResponse.context = {
+        //     key: 'value', // $context.authorizer.key -> value
+        //     number: 1,
+        //     bool: true
+        // };
         // authResponse.context.arr = ['foo']; <- this is invalid, APIGW will not accept it
         // authResponse.context.obj = {'foo':'bar'}; <- also invalid
-
+        policy.policyDocument.Statement[0].Effect = 'Allow';
+        const authResponse = policy;
         callback(null, authResponse);
 
     } catch (err) {
         console.log(JSON.stringify(err));
         console.log(`error: ${err.message}`);
 
-        callback("Unauthorized", null);
+        callback("Unauthorized", policy);
     }
 };
 
