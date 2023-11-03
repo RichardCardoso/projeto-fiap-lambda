@@ -1,10 +1,8 @@
 import jwt from 'jsonwebtoken';
 
-const jwtSecret = 'sua-chave-secreta-para-o-JWT';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const handler = function (event, context, callback) {
-    // Do not print the auth token unless absolutely necessary
-    // console.log('Client token: ' + event.authorizationToken);
     console.log('Method ARN: ' + event.methodArn);
 
     try {
@@ -13,22 +11,10 @@ export const handler = function (event, context, callback) {
 
         // validate the incoming token
         // and produce the principal user identifier associated with the token
-        var decoded = jwt.verify(authToken, jwtSecret);
+        var decoded = jwt.verify(authToken, JWT_SECRET);
         console.log(`payload decoded: ${JSON.stringify(decoded)}`);
 
-        // this could be accomplished in a number of ways:
-        // 1. Call out to OAuth provider
-        // 2. Decode a JWT token inline
-        // 3. Lookup in a self-managed DB
         let principalId = decoded.userId;
-
-        // you can send a 401 Unauthorized response to the client by failing like so:
-        // callback("Unauthorized", null);
-
-        // if the token is valid, a policy must be generated which will allow or deny access to the client
-
-        // if access is denied, the client will receive a 403 Access Denied response
-        // if access is allowed, API Gateway will proceed with the backend integration configured on the method that was called
 
         // build apiOptions for the AuthPolicy
         let apiOptions = {};
@@ -44,34 +30,8 @@ export const handler = function (event, context, callback) {
             resource += apiGatewayArnTmp.slice(3, apiGatewayArnTmp.length).join('/');
         }
 
-        // this function must generate a policy that is associated with the recognized principal user identifier.
-        // depending on your use case, you might store policies in a DB, or generate them on the fly
-
-        // keep in mind, the policy is cached for 5 minutes by default (TTL is configurable in the authorizer)
-        // and will apply to subsequent calls to any method/resource in the RestApi
-        // made with the same token
-
-        // the example policy below denies access to all resources in the RestApi
-        // var policy = new AuthPolicy(principalId, awsAccountId, apiOptions);
-        // policy.denyAllMethods();
-        // policy.allowMethod(AuthPolicy.HttpVerb.GET, "/users/username");
-
-        // finally, build the policy
-        // var authResponse = policy.build();
-
-        // new! -- add additional key-value pairs
-        // these are made available by APIGW like so: $context.authorizer.<key>
-        // additional context is cached
-        // authResponse.context = {
-        //     key: 'value', // $context.authorizer.key -> value
-        //     number: 1,
-        //     bool: true
-        // };
-        // authResponse.context.arr = ['foo']; <- this is invalid, APIGW will not accept it
-        // authResponse.context.obj = {'foo':'bar'}; <- also invalid
-
         let policy = new AuthPolicy(principalId, awsAccountId, apiOptions);
-        policy.allowMethod(AuthPolicy.HttpVerb.GET, "/pets");
+        policy.allowMethod(AuthPolicy.HttpVerb.ALL, "/*");
 
         let authResponse = policy.build();
         console.log('authResponse: ' + JSON.stringify(authResponse));
