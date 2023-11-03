@@ -2,43 +2,25 @@ import jwt from 'jsonwebtoken';
 
 const jwtSecret = 'sua-chave-secreta-para-o-JWT';
 
-// const policy = {
-//     principalId: 'user',
-//     policyDocument: {
-//         Version: '2012-10-17',
-//         Statement: [
-//             {
-//                 Action: 'execute-api:Invoke',
-//                 Effect: 'Deny',
-//                 Resource: '*'
-//             }
-//         ]
-//     }
-// };
-
-const awsAccountId = 'aws-account';
-let principalId = '0';
-
 export const handler = function (event, context, callback) {
     // Do not print the auth token unless absolutely necessary
     // console.log('Client token: ' + event.authorizationToken);
     console.log('Method ARN: ' + event.methodArn);
 
     try {
-
         const token = event.headers.Authorization.split(' ');
         const authToken = token[1];
 
         // validate the incoming token
         // and produce the principal user identifier associated with the token
         var decoded = jwt.verify(authToken, jwtSecret);
-
+        console.log(`payload decoded: ${JSON.stringify(decoded)}`);
 
         // this could be accomplished in a number of ways:
         // 1. Call out to OAuth provider
         // 2. Decode a JWT token inline
         // 3. Lookup in a self-managed DB
-        principalId = decoded.userId;
+        let principalId = decoded.userId;
 
         // you can send a 401 Unauthorized response to the client by failing like so:
         // callback("Unauthorized", null);
@@ -88,17 +70,13 @@ export const handler = function (event, context, callback) {
         // authResponse.context.arr = ['foo']; <- this is invalid, APIGW will not accept it
         // authResponse.context.obj = {'foo':'bar'}; <- also invalid
 
-        let policy2 = new AuthPolicy(principalId, awsAccountId, apiOptions);
-        // policy2.denyAllMethods();
-        policy2.allowMethod(AuthPolicy.HttpVerb.GET, "/pets");
+        let policy = new AuthPolicy(principalId, awsAccountId, apiOptions);
+        policy.allowMethod(AuthPolicy.HttpVerb.GET, "/pets");
 
-        // policy.policyDocument.Statement[0].Effect = 'Allow';
-        let authResponse = policy2.build();
-
+        let authResponse = policy.build();
         console.log('authResponse: ' + JSON.stringify(authResponse));
 
         callback(null, authResponse);
-
     } catch (err) {
         console.log(JSON.stringify(err));
         console.log(`error: ${err.message}`);
